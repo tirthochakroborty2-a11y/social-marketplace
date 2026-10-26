@@ -146,7 +146,7 @@ function RegisterContent() {
 }
 
 // ২. Suspense দিয়ে মুড়ে দেওয়া (এটাই বিল্ড এরর ঠিক করবে)
-export default function RegisterPage() {
+function RegisterContent() {
   return (
     <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>লোড হচ্ছে...</div>}>
       <RegisterContent />
@@ -158,3 +158,16 @@ const labelStyle: React.CSSProperties = { display: "block", fontSize: "12.5px", 
 const inputWrap: React.CSSProperties = { display: "flex", alignItems: "center", gap: "9px", padding: "10px 13px", border: "1.5px solid var(--border-strong)" };
 const inputStyle: React.CSSProperties = { flex: 1, background: "transparent", border: "none", outline: "none", fontSize: "13.5px", color: "var(--text)" };
 const eyeBtn: React.CSSProperties = { background: "transparent", border: "none", cursor: "pointer", display: "flex", padding: 0 };
+
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
+        লোড হচ্ছে...
+      </div>
+    }>
+      <RegisterContent />
+    </Suspense>
+  );
+}
