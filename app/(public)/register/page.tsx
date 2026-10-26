@@ -1,18 +1,15 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, UserPlus, Sparkles, ShieldCheck, Zap, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { showToast } from "@/components/Toast";
 
-// ১. মূল ফাংশন (এখানে useSearchParams আছে)
-function RegisterContent() {
+export default function RegisterPage() {
   const router = useRouter();
-  const params = useSearchParams();
   const supabase = createClient();
-  const redirectUrl = params.get("redirect") || "/";
 
   const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [showPass, setShowPass] = useState(false);
@@ -55,7 +52,7 @@ function RegisterContent() {
 
     showToast("success", "রেজিস্ট্রেশন সফল!", "ইমেইল ভেরিফাই করুন — কোড পাঠানো হয়েছে ✅");
     setTimeout(() => {
-      router.push(`/verify-email?email=${encodeURIComponent(form.email)}&redirect=${encodeURIComponent(redirectUrl)}`);
+      router.push(`/verify-email?email=${encodeURIComponent(form.email)}`);
     }, 500);
   };
 
@@ -132,7 +129,7 @@ function RegisterContent() {
 
           <p style={{ textAlign: "center", fontSize: "13.5px", color: "var(--muted)", marginTop: "18px" }}>
             অ্যাকাউন্ট আছে?{" "}
-            <Link href={`/login?redirect=${encodeURIComponent(redirectUrl)}`} style={{ fontWeight: 700, color: "var(--primary)", textDecoration: "none" }}>লগইন করুন</Link>
+            <Link href="/login" style={{ fontWeight: 700, color: "var(--primary)", textDecoration: "none" }}>লগইন করুন</Link>
           </p>
         </div>
 
@@ -142,19 +139,6 @@ function RegisterContent() {
         </div>
       </div>
     </main>
-  );
-}
-
-// ২. Suspense র‍্যাপার (এটাই Vercel এরর ঠিক করবে)
-export default function RegisterPage() {
-  return (
-    <Suspense fallback={
-      <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
-        লোড হচ্ছে...
-      </div>
-    }>
-      <RegisterContent />
-    </Suspense>
   );
 }
 
