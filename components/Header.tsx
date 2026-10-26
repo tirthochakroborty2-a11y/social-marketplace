@@ -126,6 +126,7 @@ export default function Header() {
     { to: "/create-listing", label: "বিক্রি", icon: PlusCircle },
     { to: "/dashboard", label: "ড্যাশবোর্ড", icon: LayoutDashboard },
     { to: "/wallet", label: "ওয়ালেট", icon: Wallet },
+    { to: "/profile", label: "প্রোফাইল", icon: User },
   ];
 
   const navLinks = user ? userLinks : guestLinks;
@@ -147,13 +148,13 @@ export default function Header() {
           transition: "all 0.3s",
         }}
       >
-        <div style={{ width: "100%", paddingLeft: "16px", paddingRight: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ width: "100%", paddingLeft: "12px", paddingRight: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           {/* LOGO */}
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", flexShrink: 0 }}>
             <div style={{ width: "38px", height: "38px", borderRadius: "12px", background: "linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 18px rgba(139, 92, 246, 0.35)" }}>
               <Sparkles size={19} color="#fff" />
             </div>
-            <span style={{ fontSize: "19px", fontWeight: 800, color: textColor, letterSpacing: "-0.02em" }}>
+            <span style={{ fontSize: "16px", fontWeight: 800, color: textColor, letterSpacing: "-0.02em" }}>
               Social<span style={{ color: "#6C63FF" }}>Market</span>
             </span>
           </Link>
@@ -228,7 +229,7 @@ export default function Header() {
       </header>
 
       {/* Mobile Drawer */}
-      <div style={{ position: "fixed", top: 0, right: menuOpen ? 0 : "-320px", width: "300px", height: "100vh", background: panelBg, boxShadow: "-4px 0 30px rgba(0,0,0,0.15)", padding: "80px 24px 24px", zIndex: 1001, transition: "right 0.4s cubic-bezier(0.4, 0, 0.2, 1)", overflowY: "auto" }}>
+      <div style={{ position: "fixed", top: 0, right: menuOpen ? 0 : "-320px", width: "280px", maxWidth: "85vw", height: "100vh", background: panelBg, boxShadow: "-4px 0 30px rgba(0,0,0,0.15)", padding: "80px 24px 24px", zIndex: 1001, transition: "right 0.4s cubic-bezier(0.4, 0, 0.2, 1)", overflowY: "auto" }}>
         {user && (
           <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px", background: "rgba(108,99,255,0.08)", borderRadius: "12px", marginBottom: "16px" }}>
             <div style={{ width: "40px", height: "40px", borderRadius: "12px", background: "linear-gradient(135deg, #fbbf24 0%, #f97316 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800 }}>
@@ -263,11 +264,7 @@ export default function Header() {
             );
           })}
 
-          {user && (
-            <Link href="/profile" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "13px 0", borderBottom: `1px solid ${borderColor}`, color: textColor, fontWeight: 600, fontSize: "14.5px", textDecoration: "none" }}>
-              <User size={17} /> প্রোফাইল
-            </Link>
-          )}
+
 
           <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
             <button onClick={() => setLanguage(language === "bn" ? "en" : "bn")} style={pillBtn(darkMode)}>

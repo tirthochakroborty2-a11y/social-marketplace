@@ -127,3 +127,46 @@ input, button, select, textarea { font-family: inherit; }
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-fadeup { animation: fadeUp 0.5s ease both; }
+
+/* ===== Responsive Fix ===== */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+* {
+  min-width: 0;
+}
+
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Mobile responsive grids */
+@media (max-width: 768px) {
+  [style*="grid-template-columns: repeat(2, 1fr)"],
+  [style*="gridTemplateColumns: repeat(2, 1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  section, main {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+}
+
+/* Prevent horizontal overflow */
+.section-box, .card, section {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Mobile: container full width */
+@media (max-width: 768px) {
+  .section-box {
+    padding: 20px 16px !important;
+  }
+}

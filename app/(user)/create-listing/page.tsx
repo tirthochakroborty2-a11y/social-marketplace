@@ -151,7 +151,7 @@ export default function CreateListingPage() {
     <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
       <Header />
 
-      <div style={{ flex: 1, maxWidth: "820px", margin: "0 auto", padding: "96px 20px 40px", width: "100%" }}>
+      <div style={{ flex: 1, maxWidth: "820px", margin: "0 auto", padding: "90px 16px 40px", width: "100%" }}>
 
         <div style={{ marginBottom: "22px" }}>
           <h1 style={{ fontSize: "clamp(22px, 3vw, 28px)", fontWeight: 800, color: "var(--text)", marginBottom: "4px", letterSpacing: "-0.02em" }}>
@@ -172,7 +172,7 @@ export default function CreateListingPage() {
         <section style={{ background: "var(--card)", border: "1.5px solid var(--border-strong)", borderRadius: "18px", padding: "24px", marginBottom: "16px" }}>
           <SectionHeader num="১" title="প্ল্যাটফর্ম ও লিংক" subtitle="কোন প্ল্যাটফর্মের অ্যাকাউন্ট?" />
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "10px", marginBottom: "20px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "10px", marginBottom: "20px" }}>
             {platforms.map((p) => {
               const Icon = p.icon;
               const active = form.platform === p.id;
@@ -212,7 +212,7 @@ export default function CreateListingPage() {
             <input type="text" placeholder="যেমন: ১০ হাজার সাবস্ক্রাইবার গেমিং চ্যানেল" value={form.title} onChange={(e) => update("title", e.target.value)} style={standaloneInput} />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginBottom: "14px" }}>
             <div>
               <label style={labelStyle}>ফলোয়ার</label>
               <div className="search-box" style={inputWrap}>
