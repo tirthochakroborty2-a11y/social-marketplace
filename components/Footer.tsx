@@ -7,17 +7,23 @@ export default function Footer() {
       style={{
         background: "#2D2D3F",
         color: "rgba(255,255,255,0.7)",
-        padding: "60px 0 20px",
+        padding: "60px 0 20px", // উপরে ৬০, নিচে ২০
         marginTop: "auto",
+        width: "100%", // ফুটার সবসময় ফুল উইডথ থাকবে
       }}
     >
+      {/* 
+        এখানে কন্টেইনার ঠিক করা হয়েছে। 
+        মোবাইলে padding 16px, ডেস্কটপে 32px দেওয়া হয়েছে 
+      */}
       <div
         style={{
           maxWidth: "1200px",
           margin: "0 auto",
-          padding: "0 32px",
+          padding: "0 16px", 
           width: "100%",
         }}
+        className="footer-container" // মোবাইলের জন্য ক্লাস
       >
         <div
           style={{
@@ -182,6 +188,15 @@ export default function Footer() {
           © ২০২৬ সোশ্যালমার্কেট। সব অধিকার সংরক্ষিত।
         </div>
       </div>
+
+      {/* Responsive Fix */}
+      <style jsx>{`
+        @media (min-width: 768px) {
+          .footer-container {
+            padding: 0 32px !important; /* বড় স্ক্রিনে একটু বেশি স্পেস */
+          }
+        }
+      `}</style>
     </footer>
   );
 }
