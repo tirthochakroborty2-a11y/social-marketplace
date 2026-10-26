@@ -7,6 +7,7 @@ import { Mail, Lock, Eye, EyeOff, UserPlus, Sparkles, ShieldCheck, Zap, User } f
 import { createClient } from "@/lib/supabase/client";
 import { showToast } from "@/components/Toast";
 
+// ১. মূল ফাংশন (যেখানে useSearchParams আছে)
 function RegisterContent() {
   const router = useRouter();
   const params = useSearchParams();
@@ -144,6 +145,7 @@ function RegisterContent() {
   );
 }
 
+// ২. Suspense দিয়ে মুড়ে দেওয়া (এটাই বিল্ড এরর ঠিক করবে)
 export default function RegisterPage() {
   return (
     <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>লোড হচ্ছে...</div>}>
