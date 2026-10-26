@@ -7,7 +7,7 @@ import { Mail, Lock, Eye, EyeOff, UserPlus, Sparkles, ShieldCheck, Zap, User } f
 import { createClient } from "@/lib/supabase/client";
 import { showToast } from "@/components/Toast";
 
-// ১. মূল ফাংশন (যেখানে useSearchParams আছে)
+// ১. মূল ফাংশন (এখানে useSearchParams আছে)
 function RegisterContent() {
   const router = useRouter();
   const params = useSearchParams();
@@ -145,21 +145,7 @@ function RegisterContent() {
   );
 }
 
-// ২. Suspense দিয়ে মুড়ে দেওয়া (এটাই বিল্ড এরর ঠিক করবে)
-function RegisterContent() {
-  return (
-    <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>লোড হচ্ছে...</div>}>
-      <RegisterContent />
-    </Suspense>
-  );
-}
-
-const labelStyle: React.CSSProperties = { display: "block", fontSize: "12.5px", fontWeight: 600, color: "var(--text)", marginBottom: "6px" };
-const inputWrap: React.CSSProperties = { display: "flex", alignItems: "center", gap: "9px", padding: "10px 13px", border: "1.5px solid var(--border-strong)" };
-const inputStyle: React.CSSProperties = { flex: 1, background: "transparent", border: "none", outline: "none", fontSize: "13.5px", color: "var(--text)" };
-const eyeBtn: React.CSSProperties = { background: "transparent", border: "none", cursor: "pointer", display: "flex", padding: 0 };
-
-
+// ২. Suspense র‍্যাপার (এটাই Vercel এরর ঠিক করবে)
 export default function RegisterPage() {
   return (
     <Suspense fallback={
@@ -171,3 +157,8 @@ export default function RegisterPage() {
     </Suspense>
   );
 }
+
+const labelStyle: React.CSSProperties = { display: "block", fontSize: "12.5px", fontWeight: 600, color: "var(--text)", marginBottom: "6px" };
+const inputWrap: React.CSSProperties = { display: "flex", alignItems: "center", gap: "9px", padding: "10px 13px", border: "1.5px solid var(--border-strong)" };
+const inputStyle: React.CSSProperties = { flex: 1, background: "transparent", border: "none", outline: "none", fontSize: "13.5px", color: "var(--text)" };
+const eyeBtn: React.CSSProperties = { background: "transparent", border: "none", cursor: "pointer", display: "flex", padding: 0 };
