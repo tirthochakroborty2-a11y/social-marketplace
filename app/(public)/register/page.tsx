@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, UserPlus, Sparkles, ShieldCheck, Zap, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { showToast } from "@/components/Toast";
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const redirectUrl = params.get("redirect") || "/";
   const supabase = createClient();
+  const redirectUrl = params.get("redirect") || "/";
+
   const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -37,25 +38,24 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    // Supabase signUp — email verification সহ
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
-      options: {
-        data: { name: form.name },
-        emailRedirectTo: undefined, // OTP, not link
-      },
+      options: { data: { name: form.name } },
     });
 
     setLoading(false);
 
     if (error) {
       setError(error.message);
+      showToast("error", "রেজিস্ট্রেশন ব্যর্থ", error.message);
       return;
     }
 
-    // Email verify পেজে redirect (OTP ইনপুটের জন্য)
-    router.push(`/verify-email?email=${encodeURIComponent(form.email)}`);
+    showToast("success", "রেজিস্ট্রেশন সফল!", "ইমেইল ভেরিফাই করুন — কোড পাঠানো হয়েছে ✅");
+    setTimeout(() => {
+      router.push(`/verify-email?email=${encodeURIComponent(form.email)}&redirect=${encodeURIComponent(redirectUrl)}`);
+    }, 500);
   };
 
   return (
@@ -73,7 +73,7 @@ export default function RegisterPage() {
           </span>
         </Link>
 
-        <div style={{ background: "var(--card)", border: "1.5px solid var(--border-strong)", borderRadius: "20px", padding: "28px 26px", boxShadow: "0 20px 60px -20px rgba(108,99,255,0.25)" }} className="auth-card">
+        <div style={{ background: "var(--card)", border: "1.5px solid var(--border-strong)", borderRadius: "20px", padding: "28px 26px", boxShadow: "0 20px 60px -20px rgba(108,99,255,0.25)" }}>
           <div style={{ textAlign: "center", marginBottom: "20px" }}>
             <h1 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text)", marginBottom: "5px", letterSpacing: "-0.02em" }}>অ্যাকাউন্ট খুলুন</h1>
             <p style={{ fontSize: "13.5px", color: "var(--muted)" }}>মাত্র কয়েক সেকেন্ডে শুরু করুন</p>
@@ -131,7 +131,7 @@ export default function RegisterPage() {
 
           <p style={{ textAlign: "center", fontSize: "13.5px", color: "var(--muted)", marginTop: "18px" }}>
             অ্যাকাউন্ট আছে?{" "}
-            <Link href="/login" style={{ fontWeight: 700, color: "var(--primary)", textDecoration: "none" }}>লগইন করুন</Link>
+            <Link href={`/login?redirect=${encodeURIComponent(redirectUrl)}`} style={{ fontWeight: 700, color: "var(--primary)", textDecoration: "none" }}>লগইন করুন</Link>
           </p>
         </div>
 
@@ -141,6 +141,14 @@ export default function RegisterPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>লোড হচ্ছে...</div>}>
+      <RegisterContent />
+    </Suspense>
   );
 }
 

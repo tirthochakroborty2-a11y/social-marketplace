@@ -5,11 +5,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, CheckCircle2, RefreshCw, Sparkles, ArrowLeft, ShieldCheck, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { showToast } from "@/components/Toast";
 
 function VerifyEmailContent() {
   const router = useRouter();
   const params = useSearchParams();
   const email = params.get("email") || "";
+  const redirectUrl = params.get("redirect") || "/";
   const supabase = createClient();
 
   const [code, setCode] = useState(["", "", "", "", "", ""]);
@@ -24,9 +26,7 @@ function VerifyEmailContent() {
     if (timer > 0) {
       const t = setTimeout(() => setTimer(timer - 1), 1000);
       return () => clearTimeout(t);
-    } else {
-      setCanResend(true);
-    }
+    } else setCanResend(true);
   }, [timer]);
 
   const handleChange = (i: number, val: string) => {
@@ -38,9 +38,7 @@ function VerifyEmailContent() {
   };
 
   const handleKeyDown = (i: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !code[i] && i > 0) {
-      inputRefs.current[i - 1]?.focus();
-    }
+    if (e.key === "Backspace" && !code[i] && i > 0) inputRefs.current[i - 1]?.focus();
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -63,20 +61,18 @@ function VerifyEmailContent() {
     }
 
     setLoading(true);
-    const { error: verifyErr } = await supabase.auth.verifyOtp({
-      email: email,
-      token: token,
-      type: "signup",
-    });
+    const { error: verifyErr } = await supabase.auth.verifyOtp({ email, token, type: "signup" });
     setLoading(false);
 
     if (verifyErr) {
       setError(verifyErr.message);
+      showToast("error", "যাচাই ব্যর্থ", verifyErr.message);
       return;
     }
 
+    showToast("success", "ইমেইল ভেরিফাই সফল!", "স্বাগতম SocialMarket-এ ✅");
     setSuccess(true);
-    setTimeout(() => router.push("/"), 1500);
+    setTimeout(() => router.push(redirectUrl), 1200);
   };
 
   const handleResend = async () => {
@@ -85,13 +81,13 @@ function VerifyEmailContent() {
     setCanResend(false);
     setError("");
 
-    const { error: resendErr } = await supabase.auth.resend({
-      type: "signup",
-      email: email,
-    });
-
-    if (resendErr) setError(resendErr.message);
-    else alert("নতুন কোড পাঠানো হয়েছে — ইমেইল চেক করুন");
+    const { error: resendErr } = await supabase.auth.resend({ type: "signup", email });
+    if (resendErr) {
+      setError(resendErr.message);
+      showToast("error", "পাঠানো যায়নি", resendErr.message);
+    } else {
+      showToast("info", "নতুন কোড পাঠানো হয়েছে", "ইমেইল চেক করুন");
+    }
   };
 
   if (success) {
@@ -100,12 +96,8 @@ function VerifyEmailContent() {
         <div style={{ width: "68px", height: "68px", borderRadius: "50%", background: "rgba(16,185,129,0.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
           <CheckCircle2 size={36} color="#10b981" />
         </div>
-        <h2 style={{ fontSize: "21px", fontWeight: 800, color: "var(--text)", marginBottom: "8px", letterSpacing: "-0.02em" }}>
-          সফলভাবে ভেরিফাই হয়েছে!
-        </h2>
-        <p style={{ fontSize: "13.5px", color: "var(--muted)" }}>
-          হোমে নিয়ে যাচ্ছি...
-        </p>
+        <h2 style={{ fontSize: "21px", fontWeight: 800, color: "var(--text)", marginBottom: "8px" }}>সফলভাবে ভেরিফাই হয়েছে!</h2>
+        <p style={{ fontSize: "13.5px", color: "var(--muted)" }}>রিডাইরেক্ট হচ্ছে...</p>
       </div>
     );
   }
@@ -116,15 +108,9 @@ function VerifyEmailContent() {
         <div style={{ width: "60px", height: "60px", borderRadius: "16px", background: "linear-gradient(135deg, #6C63FF 0%, #d946ef 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 10px 24px rgba(108,99,255,0.35)" }}>
           <Mail size={28} color="#fff" />
         </div>
-        <h1 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text)", marginBottom: "5px", letterSpacing: "-0.02em" }}>
-          ইমেইল ভেরিফাই করুন
-        </h1>
-        <p style={{ fontSize: "13.5px", color: "var(--muted)", marginBottom: "4px" }}>
-          আমরা একটি ৬-সংখ্যার কোড পাঠিয়েছি
-        </p>
-        <p style={{ fontSize: "13.5px", fontWeight: 700, color: "var(--primary)", wordBreak: "break-all" }}>
-          {email}
-        </p>
+        <h1 style={{ fontSize: "22px", fontWeight: 800, color: "var(--text)", marginBottom: "5px" }}>ইমেইল ভেরিফাই করুন</h1>
+        <p style={{ fontSize: "13.5px", color: "var(--muted)", marginBottom: "4px" }}>৬-সংখ্যার কোড পাঠানো হয়েছে</p>
+        <p style={{ fontSize: "13.5px", fontWeight: 700, color: "var(--primary)", wordBreak: "break-all" }}>{email}</p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -145,18 +131,7 @@ function VerifyEmailContent() {
               value={digit}
               onChange={(e) => handleChange(i, e.target.value)}
               onKeyDown={(e) => handleKeyDown(i, e)}
-              style={{
-                width: "100%",
-                height: "52px",
-                textAlign: "center",
-                fontSize: "20px",
-                fontWeight: 800,
-                color: "var(--text)",
-                background: "var(--bg)",
-                border: digit ? "2px solid var(--primary)" : "1.5px solid var(--border-strong)",
-                borderRadius: "10px",
-                outline: "none",
-              }}
+              style={{ width: "100%", height: "52px", textAlign: "center", fontSize: "20px", fontWeight: 800, color: "var(--text)", background: "var(--bg)", border: digit ? "2px solid var(--primary)" : "1.5px solid var(--border-strong)", borderRadius: "10px", outline: "none" }}
             />
           ))}
         </div>
@@ -202,7 +177,7 @@ export default function VerifyEmailPage() {
           </span>
         </Link>
 
-        <div style={{ background: "var(--card)", border: "1.5px solid var(--border-strong)", borderRadius: "20px", padding: "28px 26px", boxShadow: "0 20px 60px -20px rgba(108,99,255,0.25)" }} className="auth-card">
+        <div style={{ background: "var(--card)", border: "1.5px solid var(--border-strong)", borderRadius: "20px", padding: "28px 26px", boxShadow: "0 20px 60px -20px rgba(108,99,255,0.25)" }}>
           <Suspense fallback={<div style={{ color: "var(--muted)", textAlign: "center" }}>লোড হচ্ছে...</div>}>
             <VerifyEmailContent />
           </Suspense>
