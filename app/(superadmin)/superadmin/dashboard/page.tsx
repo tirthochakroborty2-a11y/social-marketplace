@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { showToast } from "@/components/Toast";
 import {
   Crown, Users, FileText, Settings, LogOut, Menu, X, Moon, Sun,
-  Sparkles, CheckCircle2, Activity, ThumbsUp, ThumbsDown, MessageSquare,
-  ShieldCheck, Loader2
+  Sparkles, CheckCircle2, Activity, ThumbsUp, ShieldCheck, Loader2
 } from "lucide-react";
 
 const navLinks = [

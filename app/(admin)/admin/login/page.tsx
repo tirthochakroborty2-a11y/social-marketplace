@@ -55,7 +55,8 @@ function LoginContent() {
     }
 
     if (role === "superadmin" && form.email.trim().toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
-      setError("এই ইমেইল Super Admin নয় — শুধু তirthochakroborty2@gmail.com ব্যবহার করুন");
+      setError("এই ইমেইল Super Admin নয় — শুধু অনুমোদিত Super Admin login করতে পারবে");
+      showToast("error", "লগইন ব্যর্থ", "আপনি Super Admin নন");
       return;
     }
 
@@ -85,6 +86,7 @@ function LoginContent() {
     if (!profile || !["admin", "superadmin"].includes(profile.role)) {
       await supabase.auth.signOut();
       setError("এই অ্যাকাউন্টটি অ্যাডমিন নয়");
+      showToast("error", "লগইন ব্যর্থ", "আপনি অ্যাডমিন নন");
       setLoading(false);
       return;
     }
@@ -98,6 +100,7 @@ function LoginContent() {
 
     setLoading(false);
     showToast("success", "লগইন সফল!", role === "superadmin" ? "Super Admin হিসেবে লগইন" : "Admin হিসেবে লগইন");
+    
     setTimeout(() => {
       if (role === "superadmin") {
         router.push("/superadmin/dashboard");
@@ -127,7 +130,7 @@ function LoginContent() {
 
       <div style={{ maxWidth: "440px", margin: "0 auto", position: "relative", zIndex: 1, width: "100%" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", textDecoration: "none", marginBottom: "24px" }}>
-          <div style={{ width: "48px", height: "48px", borderRadius: "14px", background: accentGradient, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: isSuper ? "0 10px 24px rgba(239,68,68,0.35)" : "0 10px 24px rgba(139,92,246,0.35)" }}>
+          <div style={{ width: "48px", height: "48px", borderRadius: "14px", background: accentGradient, display: "flex", alignItems: "center", justifyContent: "center" }}>
             {isSuper ? <Crown size={24} color="#fff" /> : <ShieldCheck size={24} color="#fff" />}
           </div>
           <span style={{ fontSize: "22px", fontWeight: 800, color: "var(--text)" }}>

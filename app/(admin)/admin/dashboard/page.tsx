@@ -8,19 +8,17 @@ import { showToast } from "@/components/Toast";
 import {
   LayoutDashboard, ListChecks, ShoppingBag, AlertTriangle, Users,
   Wallet, FileText, Settings, LogOut, Menu, X, Crown,
-  Moon, Sun, Sparkles, Check, Loader2, Download
+  Moon, Sun, Sparkles, Check, Loader2, Download, Ban, Trash2, XCircle
 } from "lucide-react";
 
 const sidebarLinks = [
   { key: "overview", label: "ওভারভিউ", icon: LayoutDashboard },
+  { key: "users", label: "ইউজার ম্যানেজমেন্ট", icon: Users },
   { key: "listings", label: "লিস্টিং", icon: ListChecks },
-  { key: "wallet", label: "ওয়ালেট পেমেন্ট", icon: Wallet },
-  { key: "withdraws", label: "উইথড্র", icon: Download },
   { key: "orders", label: "অর্ডার", icon: ShoppingBag },
   { key: "disputes", label: "ডিসপিউট", icon: AlertTriangle },
-  { key: "users", label: "ইউজার", icon: Users },
-  { key: "audit", label: "অডিট লগ", icon: FileText },
-  { key: "settings", label: "সেটিংস", icon: Settings },
+  { key: "wallet", label: "ওয়ালেট পেমেন্ট", icon: Wallet },
+  { key: "withdraws", label: "উইথড্র রিকোয়েস্ট", icon: Download },
 ];
 
 export default function AdminDashboardPage() {
@@ -32,11 +30,16 @@ export default function AdminDashboardPage() {
   const [tab, setTab] = useState("overview");
   const [menuOpen, setMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  
+  // Data States
+  const [users, setUsers] = useState<any[]>([]);
   const [listings, setListings] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [disputes, setDisputes] = useState<any[]>([]);
   const [pendingTx, setPendingTx] = useState<any[]>([]);
   const [pendingWithdraws, setPendingWithdraws] = useState<any[]>([]);
   const [counts, setCounts] = useState({ users: 0, listings: 0, orders: 0, pendingListings: 0 });
-  const [loadingListings, setLoadingListings] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const saved = localStorage.getItem("theme");
@@ -50,22 +53,6 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (authorized) fetchData();
   }, [tab, authorized]);
-
-  // Realtime
-  useEffect(() => {
-    if (!authorized) return;
-    const c1 = supabase.channel("admin-listings").on("postgres_changes", { event: "*", schema: "public", table: "listings" }, () => fetchData()).subscribe();
-    const c2 = supabase.channel("admin-wallet").on("postgres_changes", { event: "*", schema: "public", table: "wallet_transactions" }, () => {
-      if (tab === "wallet") fetchWalletTx();
-      if (tab === "withdraws") fetchWithdraws();
-    }).subscribe();
-    const c3 = supabase.channel("admin-orders").on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => fetchData()).subscribe();
-    return () => {
-      supabase.removeChannel(c1);
-      supabase.removeChannel(c2);
-      supabase.removeChannel(c3);
-    };
-  }, [authorized, tab]);
 
   const checkAuth = async () => {
     try {
@@ -85,88 +72,103 @@ export default function AdminDashboardPage() {
   };
 
   const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut({ scope: "global" });
-    } catch (e) {
-      console.log("SignOut error:", e);
-    }
-    try {
-      localStorage.clear();
-      sessionStorage.clear();
-      document.cookie.split(";").forEach((c) => {
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-      });
-    } catch {}
+    await supabase.auth.signOut({ scope: "global" });
+    localStorage.clear();
+    sessionStorage.clear();
     window.location.replace("/admin/login");
   };
 
   const fetchData = async () => {
-    if (tab === "wallet") fetchWalletTx();
-    if (tab === "withdraws") fetchWithdraws();
-
-    if (tab === "listings" || tab === "overview") {
-      setLoadingListings(true);
-      const { data } = await supabase.from("listings").select("id, title, platform, price, followers, status, seller_id, created_at").order("created_at", { ascending: false });
-      setListings(data || []);
-      setLoadingListings(false);
+    setLoading(true);
+    if (tab === "overview" || tab === "users") {
+      const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+      setUsers(data || []);
     }
-
-    const [u, l, o, p] = await Promise.all([
-      supabase.from("profiles").select("id", { count: "exact", head: true }),
-      supabase.from("listings").select("id", { count: "exact", head: true }),
-      supabase.from("orders").select("id", { count: "exact", head: true }),
-      supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "pending"),
-    ]);
-    setCounts({ users: u.count || 0, listings: l.count || 0, orders: o.count || 0, pendingListings: p.count || 0 });
+    if (tab === "overview" || tab === "listings") {
+      const { data } = await supabase.from("listings").select("*").order("created_at", { ascending: false });
+      setListings(data || []);
+    }
+    if (tab === "orders" || tab === "overview") {
+      const { data } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
+      setOrders(data || []);
+    }
+    if (tab === "disputes") {
+      const { data } = await supabase.from("disputes").select("*").order("created_at", { ascending: false });
+      setDisputes(data || []);
+    }
+    if (tab === "wallet" || tab === "withdraws") {
+      const { data } = await supabase.from("wallet_transactions").select("*").eq("status", "pending").order("created_at", { ascending: false });
+      if (tab === "wallet") setPendingTx(data?.filter(t => t.type === "credit") || []);
+      if (tab === "withdraws") setPendingWithdraws(data?.filter(t => t.type === "debit") || []);
+    }
+    if (tab === "overview") {
+      const [u, l, o, p] = await Promise.all([
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("listings").select("id", { count: "exact", head: true }),
+        supabase.from("orders").select("id", { count: "exact", head: true }),
+        supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      ]);
+      setCounts({ users: u.count || 0, listings: l.count || 0, orders: o.count || 0, pendingListings: p.count || 0 });
+    }
+    setLoading(false);
   };
 
-  const fetchWalletTx = async () => {
-    const { data } = await supabase.from("wallet_transactions").select("*").eq("status", "pending").eq("type", "credit").order("created_at", { ascending: false });
-    setPendingTx(data || []);
+  // Actions
+  const banUser = async (id: string, currentStatus: boolean) => {
+    await supabase.from("profiles").update({ is_banned: !currentStatus }).eq("id", id);
+    showToast("info", !currentStatus ? "ইউজার ব্যান হয়েছে" : "ইউজার আনব্যান হয়েছে");
+    fetchData();
   };
-
-  const fetchWithdraws = async () => {
-    const { data } = await supabase.from("wallet_transactions").select("*").eq("status", "pending").eq("type", "debit").order("created_at", { ascending: false });
-    setPendingWithdraws(data || []);
+  const deleteUser = async (id: string) => {
+    if(!confirm("ইউজার ডিলিট করতে চান?")) return;
+    await supabase.from("profiles").delete().eq("id", id);
+    showToast("warning", "ইউজার ডিলিট হয়েছে");
+    fetchData();
   };
-
+  const approveListing = async (id: string) => {
+    await supabase.from("listings").update({ status: "active" }).eq("id", id);
+    showToast("success", "লিস্টিং অ্যাপ্রুভ হয়েছে");
+    fetchData();
+  };
+  const rejectListing = async (id: string) => {
+    await supabase.from("listings").update({ status: "rejected" }).eq("id", id);
+    showToast("warning", "লিস্টিং রিজেক্ট হয়েছে");
+    fetchData();
+  };
+  const deleteListing = async (id: string) => {
+    if(!confirm("লিস্টিং ডিলিট করতে চান?")) return;
+    await supabase.from("listings").delete().eq("id", id);
+    showToast("warning", "লিস্টিং ডিলিট হয়েছে");
+    fetchData();
+  };
+  const cancelOrder = async (id: string) => {
+    if(!confirm("অর্ডার ক্যান্সেল করতে চান?")) return;
+    await supabase.from("orders").update({ status: "cancelled" }).eq("id", id);
+    showToast("warning", "অর্ডার ক্যান্সেল হয়েছে");
+    fetchData();
+  };
   const approveTx = async (id: string, userId: string, amount: number) => {
     const { data: p } = await supabase.from("profiles").select("coin_balance").eq("id", userId).single();
     await supabase.from("profiles").update({ coin_balance: Number(p?.coin_balance || 0) + Number(amount) }).eq("id", userId);
     await supabase.from("wallet_transactions").update({ status: "completed" }).eq("id", id);
-    showToast("success", "পেমেন্ট অ্যাপ্রুভ হয়েছে", "Coin যোগ করা হয়েছে ✅");
-    fetchWalletTx();
+    showToast("success", "পেমেন্ট অ্যাপ্রুভ হয়েছে");
+    fetchData();
   };
-
   const rejectTx = async (id: string) => {
     await supabase.from("wallet_transactions").update({ status: "failed" }).eq("id", id);
     showToast("warning", "পেমেন্ট রিজেক্ট হয়েছে");
-    fetchWalletTx();
+    fetchData();
   };
-
   const approveWithdraw = async (id: string) => {
     await supabase.from("wallet_transactions").update({ status: "completed" }).eq("id", id);
-    showToast("success", "উইথড্র সম্পন্ন", "টাকা পাঠানো হয়েছে ✅");
-    fetchWithdraws();
+    showToast("success", "উইথড্র সম্পন্ন");
+    fetchData();
   };
-
   const rejectWithdraw = async (id: string, userId: string, amount: number) => {
     const { data: p } = await supabase.from("profiles").select("coin_balance").eq("id", userId).single();
     await supabase.from("profiles").update({ coin_balance: Number(p?.coin_balance || 0) + Number(amount) }).eq("id", userId);
     await supabase.from("wallet_transactions").update({ status: "failed" }).eq("id", id);
-    showToast("warning", "উইথড্র রিজেক্ট হয়েছে", "ব্যালেন্স ফেরত দেওয়া হয়েছে");
-    fetchWithdraws();
-  };
-
-  const approveListing = async (id: string) => {
-    await supabase.from("listings").update({ status: "active" }).eq("id", id);
-    showToast("success", "লিস্টিং অ্যাপ্রুভ হয়েছে", "এখন সাইটে দেখা যাবে ✅");
-    fetchData();
-  };
-
-  const rejectListing = async (id: string) => {
-    await supabase.from("listings").update({ status: "rejected" }).eq("id", id);
-    showToast("warning", "লিস্টিং রিজেক্ট হয়েছে");
+    showToast("warning", "উইথড্র রিজেক্ট হয়েছে");
     fetchData();
   };
 
@@ -191,8 +193,6 @@ export default function AdminDashboardPage() {
 
   if (!authorized) return null;
 
-  const pendingListings = listings.filter((l) => l.status === "pending");
-
   return (
     <main style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <header style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, padding: "12px 0", background: bgColor, backdropFilter: "blur(20px)", boxShadow: "0 2px 30px rgba(0,0,0,0.06)", borderBottom: `1px solid ${borderColor}` }}>
@@ -206,24 +206,11 @@ export default function AdminDashboardPage() {
               <Crown size={11} /> Admin
             </span>
           </Link>
-
-          <nav style={{ display: "flex", gap: "2px" }} className="admin-desktop-nav">
-            {sidebarLinks.slice(0, 4).map((link) => {
-              const Icon = link.icon;
-              const active = tab === link.key;
-              return (
-                <button key={link.key} onClick={() => setTab(link.key)} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: active ? 700 : 500, color: active ? "#6C63FF" : textColor, padding: "8px 12px", borderRadius: "9px", background: active ? "rgba(108,99,255,0.1)" : "transparent", border: "none", cursor: "pointer" }}>
-                  <Icon size={14} /> {link.label}
-                </button>
-              );
-            })}
-          </nav>
-
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <button onClick={toggleDarkMode} style={{ width: "34px", height: "34px", borderRadius: "50%", background: darkMode ? "#334155" : "#F8F9FE", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
               {darkMode ? <Sun size={15} color="#FFC857" /> : <Moon size={15} color="#6C63FF" />}
             </button>
-            <button onClick={handleLogout} title="Logout" style={{ width: "34px", height: "34px", borderRadius: "50%", background: "linear-gradient(135deg, #ef4444, #f59e0b)", display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>
+            <button onClick={handleLogout} style={{ width: "34px", height: "34px", borderRadius: "50%", background: "linear-gradient(135deg, #ef4444, #f59e0b)", display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>
               <LogOut size={15} color="white" />
             </button>
             <button onClick={() => setMenuOpen(!menuOpen)} className="admin-hamburger" style={{ display: "none", background: "transparent", border: "none", padding: "6px", cursor: "pointer" }}>
@@ -243,9 +230,6 @@ export default function AdminDashboardPage() {
             </button>
           );
         })}
-        <button onClick={handleLogout} style={{ marginTop: "16px", padding: "13px", borderRadius: "11px", background: "rgba(239,68,68,0.1)", color: "#ef4444", fontSize: "14px", fontWeight: 700, border: "1px solid rgba(239,68,68,0.2)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "7px", width: "100%" }}>
-          <LogOut size={16} /> লগআউট
-        </button>
       </div>
       <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 1000, opacity: menuOpen ? 1 : 0, visibility: menuOpen ? "visible" : "hidden", transition: "all 0.3s" }} />
 
@@ -255,6 +239,7 @@ export default function AdminDashboardPage() {
           <p style={{ fontSize: "13px", color: "var(--muted)" }}>Admin Panel</p>
         </div>
 
+        {/* OVERVIEW */}
         {tab === "overview" && (
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginBottom: "20px" }}>
@@ -276,123 +261,127 @@ export default function AdminDashboardPage() {
                 );
               })}
             </div>
-
-            <div style={{ background: "var(--card)", border: "1.5px solid var(--border-strong)", borderRadius: "16px", padding: "18px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "14px" }}>
-                <h2 style={{ fontSize: "15px", fontWeight: 800, color: "var(--text)" }}>অ্যাপ্রুভাল প্রয়োজন</h2>
-                <button onClick={() => setTab("listings")} style={{ fontSize: "12px", color: "var(--primary)", background: "transparent", border: "none", cursor: "pointer", fontWeight: 600 }}>সব দেখুন →</button>
-              </div>
-              {loadingListings ? <Loader2 size={20} color="var(--muted)" /> : pendingListings.length === 0 ? (
-                <p style={{ fontSize: "13px", color: "var(--muted)", textAlign: "center", padding: "20px" }}>কোনো pending নেই ✅</p>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  {pendingListings.slice(0, 3).map((l) => (
-                    <div key={l.id} style={{ display: "flex", gap: "10px", padding: "10px 12px", background: "var(--bg)", borderRadius: "10px", border: "1px solid var(--border)", flexWrap: "wrap", alignItems: "center" }}>
-                      <div style={{ flex: 1, minWidth: "150px" }}>
-                        <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)", marginBottom: "2px" }}>{l.title}</p>
-                        <p style={{ fontSize: "11px", color: "var(--muted)" }}>{l.platform} · {l.followers} ফলোয়ার</p>
-                      </div>
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--primary)" }}>৳{Number(l.price).toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <p style={{ textAlign: "center", color: "var(--muted)", fontSize: "13px", marginTop: "40px" }}>বাম দিকের মেনু থেকে যেকোনো সেকশনে যান</p>
           </div>
         )}
 
+        {/* USERS */}
+        {tab === "users" && (
+          <div style={{ background: "var(--card)", border: "1.5px solid var(--border-strong)", borderRadius: "16px", padding: "18px" }}>
+            {loading ? <Loader2 size={28} color="var(--muted)" /> : users.map((u) => (
+              <div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", background: "var(--bg)", borderRadius: "11px", border: "1px solid var(--border)", marginBottom: "10px", flexWrap: "wrap", gap: "10px" }}>
+                <div>
+                  <p style={{ fontSize: "14px", fontWeight: 700, color: "var(--text)" }}>{u.name || "No Name"} ({u.role})</p>
+                  <p style={{ fontSize: "12px", color: "var(--muted)" }}>{u.email} · ৳{u.coin_balance}</p>
+                </div>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button onClick={() => banUser(u.id, u.is_banned)} style={{ padding: "6px 12px", borderRadius: "7px", background: u.is_banned ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", color: u.is_banned ? "#10b981" : "#ef4444", fontSize: "12px", fontWeight: 700, border: "none", cursor: "pointer" }}>
+                    {u.is_banned ? "আনব্যান" : "ব্যান"}
+                  </button>
+                  <button onClick={() => deleteUser(u.id)} style={{ padding: "6px 12px", borderRadius: "7px", background: "rgba(239,68,68,0.1)", color: "#ef4444", fontSize: "12px", fontWeight: 700, border: "none", cursor: "pointer" }}>
+                    ডিলিট
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* LISTINGS */}
         {tab === "listings" && (
           <div style={{ background: "var(--card)", border: "1.5px solid var(--border-strong)", borderRadius: "16px", padding: "18px" }}>
-            <h2 style={{ fontSize: "15px", fontWeight: 800, color: "var(--text)", marginBottom: "16px" }}>লিস্টিং ({listings.length})</h2>
-            {loadingListings ? <div style={{ textAlign: "center", padding: "40px" }}><Loader2 size={28} color="var(--muted)" /></div> : listings.length === 0 ? (
-              <p style={{ fontSize: "13px", color: "var(--muted)", textAlign: "center", padding: "40px" }}>কোনো listing নেই</p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {listings.map((l) => (
-                  <div key={l.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: "var(--bg)", borderRadius: "11px", border: "1px solid var(--border)", flexWrap: "wrap" }}>
-                    <div style={{ flex: 1, minWidth: "200px" }}>
-                      <p style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--text)", marginBottom: "3px" }}>{l.title}</p>
-                      <p style={{ fontSize: "11.5px", color: "var(--muted)" }}>{l.platform} · {l.followers} · ৳{Number(l.price).toLocaleString()}</p>
-                    </div>
-                    <span style={{ fontSize: "10.5px", fontWeight: 700, padding: "3px 8px", borderRadius: "5px", color: l.status === "active" ? "#10b981" : l.status === "pending" ? "#f59e0b" : l.status === "sold" ? "#6C63FF" : "#ef4444", background: l.status === "active" ? "rgba(16,185,129,0.1)" : l.status === "pending" ? "rgba(245,158,11,0.1)" : l.status === "sold" ? "rgba(108,99,255,0.1)" : "rgba(239,68,68,0.1)" }}>
-                      {l.status === "active" ? "সক্রিয়" : l.status === "pending" ? "পেন্ডিং" : l.status === "sold" ? "বিক্রি" : "রিজেক্টেড"}
-                    </span>
-                    {l.status === "pending" && (
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <button onClick={() => approveListing(l.id)} style={{ padding: "6px 11px", borderRadius: "7px", background: "rgba(16,185,129,0.1)", color: "#10b981", fontSize: "11.5px", fontWeight: 700, border: "1px solid rgba(16,185,129,0.2)", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
-                          <Check size={12} /> অ্যাপ্রুভ
-                        </button>
-                        <button onClick={() => rejectListing(l.id)} style={{ padding: "6px 11px", borderRadius: "7px", background: "rgba(239,68,68,0.1)", color: "#ef4444", fontSize: "11.5px", fontWeight: 700, border: "1px solid rgba(239,68,68,0.2)", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}>
-                          <X size={12} /> রিজেক্ট
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+            {loading ? <Loader2 size={28} color="var(--muted)" /> : listings.map((l) => (
+              <div key={l.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: "var(--bg)", borderRadius: "11px", border: "1px solid var(--border)", flexWrap: "wrap", marginBottom: "10px" }}>
+                <div style={{ flex: 1, minWidth: "200px" }}>
+                  <p style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--text)" }}>{l.title}</p>
+                  <p style={{ fontSize: "11.5px", color: "var(--muted)" }}>৳{Number(l.price).toLocaleString()} · Status: {l.status}</p>
+                </div>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  {l.status === "pending" && (
+                    <>
+                      <button onClick={() => approveListing(l.id)} style={{ padding: "6px 11px", borderRadius: "7px", background: "rgba(16,185,129,0.1)", color: "#10b981", fontSize: "12px", fontWeight: 700, border: "none", cursor: "pointer" }}>অ্যাপ্রুভ</button>
+                      <button onClick={() => rejectListing(l.id)} style={{ padding: "6px 11px", borderRadius: "7px", background: "rgba(245,158,11,0.1)", color: "#f59e0b", fontSize: "12px", fontWeight: 700, border: "none", cursor: "pointer" }}>রিজেক্ট</button>
+                    </>
+                  )}
+                  <button onClick={() => deleteListing(l.id)} style={{ padding: "6px 11px", borderRadius: "7px", background: "rgba(239,68,68,0.1)", color: "#ef4444", fontSize: "12px", fontWeight: 700, border: "none", cursor: "pointer" }}>ডিলিট</button>
+                </div>
               </div>
-            )}
+            ))}
           </div>
         )}
 
+        {/* ORDERS */}
+        {tab === "orders" && (
+          <div style={{ background: "var(--card)", border: "1.5px solid var(--border-strong)", borderRadius: "16px", padding: "18px" }}>
+            {loading ? <Loader2 size={28} color="var(--muted)" /> : orders.map((o) => (
+              <div key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", background: "var(--bg)", borderRadius: "11px", border: "1px solid var(--border)", marginBottom: "10px", flexWrap: "wrap", gap: "10px" }}>
+                <div>
+                  <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>অর্ডার #{o.id.slice(0, 8)} - ৳{Number(o.amount).toLocaleString()}</p>
+                  <p style={{ fontSize: "11.5px", color: "var(--muted)" }}>Status: {o.status} | Buyer: {o.buyer_id.slice(0, 8)}</p>
+                </div>
+                {o.status !== "cancelled" && o.status !== "completed" && (
+                  <button onClick={() => cancelOrder(o.id)} style={{ padding: "6px 12px", borderRadius: "7px", background: "rgba(239,68,68,0.1)", color: "#ef4444", fontSize: "12px", fontWeight: 700, border: "none", cursor: "pointer" }}>
+                    ক্যান্সেল
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* DISPUTES */}
+        {tab === "disputes" && (
+          <div style={{ background: "var(--card)", border: "1.5px solid var(--border-strong)", borderRadius: "16px", padding: "18px" }}>
+            {loading ? <Loader2 size={28} color="var(--muted)" /> : disputes.length === 0 ? <p style={{ color: "var(--muted)" }}>কোনো ডিসপিউট নেই</p> : disputes.map((d) => (
+              <div key={d.id} style={{ padding: "12px", background: "rgba(239,68,68,0.05)", borderRadius: "11px", border: "1px solid rgba(239,68,68,0.2)", marginBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                <div>
+                  <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>রিজন: {d.reason}</p>
+                  <p style={{ fontSize: "11.5px", color: "var(--muted)" }}>Order: {d.order_id.slice(0, 8)} | Status: {d.status}</p>
+                </div>
+                <button onClick={() => showToast("info", "শীঘ্রই আসছে")} style={{ padding: "6px 12px", borderRadius: "7px", background: "rgba(16,185,129,0.1)", color: "#10b981", fontSize: "12px", fontWeight: 700, border: "none", cursor: "pointer" }}>
+                  রিজলভ
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* WALLET */}
         {tab === "wallet" && (
           <div style={{ background: "var(--card)", border: "1.5px solid var(--border-strong)", borderRadius: "16px", padding: "18px" }}>
-            <h2 style={{ fontSize: "15px", fontWeight: 800, color: "var(--text)", marginBottom: "14px" }}>পেন্ডিং পেমেন্ট ({pendingTx.length})</h2>
-            {pendingTx.length === 0 ? <p style={{ fontSize: "13px", color: "var(--muted)", textAlign: "center", padding: "40px" }}>কোনো পেন্ডিং নেই ✅</p> : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {pendingTx.map((tx) => (
-                  <div key={tx.id} style={{ padding: "14px", background: "var(--bg)", borderRadius: "11px", border: "1px solid var(--border)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", flexWrap: "wrap", gap: "8px" }}>
-                      <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>{tx.reason}</span>
-                      <span style={{ fontSize: "16px", fontWeight: 800, color: "#6C63FF" }}>৳{Number(tx.amount).toLocaleString()}</span>
-                    </div>
-                    <p style={{ fontSize: "11.5px", color: "var(--muted)", marginBottom: "10px" }}>{new Date(tx.created_at).toLocaleString("bn-BD")}</p>
-                    <div style={{ display: "flex", gap: "6px" }}>
-                      <button onClick={() => approveTx(tx.id, tx.user_id, tx.amount)} style={{ padding: "7px 14px", borderRadius: "7px", background: "rgba(16,185,129,0.1)", color: "#10b981", fontSize: "12px", fontWeight: 700, border: "1px solid rgba(16,185,129,0.2)", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" }}>
-                        <Check size={12} /> অ্যাপ্রুভ
-                      </button>
-                      <button onClick={() => rejectTx(tx.id)} style={{ padding: "7px 14px", borderRadius: "7px", background: "rgba(239,68,68,0.1)", color: "#ef4444", fontSize: "12px", fontWeight: 700, border: "1px solid rgba(239,68,68,0.2)", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" }}>
-                        <X size={12} /> রিজেক্ট
-                      </button>
-                    </div>
-                  </div>
-                ))}
+             {loading ? <Loader2 size={28} color="var(--muted)" /> : pendingTx.map((tx) => (
+              <div key={tx.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", background: "var(--bg)", borderRadius: "11px", border: "1px solid var(--border)", marginBottom: "10px", flexWrap: "wrap", gap: "10px" }}>
+                <div>
+                  <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>{tx.reason}</p>
+                  <p style={{ fontSize: "11.5px", color: "var(--muted)" }}>৳{Number(tx.amount).toLocaleString()}</p>
+                </div>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button onClick={() => approveTx(tx.id, tx.user_id, tx.amount)} style={{ padding: "6px 12px", borderRadius: "7px", background: "rgba(16,185,129,0.1)", color: "#10b981", fontSize: "12px", fontWeight: 700, border: "none", cursor: "pointer" }}>অ্যাপ্রুভ</button>
+                  <button onClick={() => rejectTx(tx.id)} style={{ padding: "6px 12px", borderRadius: "7px", background: "rgba(239,68,68,0.1)", color: "#ef4444", fontSize: "12px", fontWeight: 700, border: "none", cursor: "pointer" }}>রিজেক্ট</button>
+                </div>
               </div>
-            )}
+            ))}
           </div>
         )}
 
+        {/* WITHDRAWS */}
         {tab === "withdraws" && (
           <div style={{ background: "var(--card)", border: "1.5px solid var(--border-strong)", borderRadius: "16px", padding: "18px" }}>
-            <h2 style={{ fontSize: "15px", fontWeight: 800, color: "var(--text)", marginBottom: "14px" }}>পেন্ডিং উইথড্র ({pendingWithdraws.length})</h2>
-            {pendingWithdraws.length === 0 ? <p style={{ fontSize: "13px", color: "var(--muted)", textAlign: "center", padding: "40px" }}>কোনো পেন্ডিং নেই ✅</p> : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {pendingWithdraws.map((tx) => (
-                  <div key={tx.id} style={{ padding: "14px", background: "var(--bg)", borderRadius: "11px", border: "1px solid var(--border)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", flexWrap: "wrap", gap: "8px" }}>
-                      <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>{tx.reason}</span>
-                      <span style={{ fontSize: "16px", fontWeight: 800, color: "#ef4444" }}>৳{Number(tx.amount).toLocaleString()}</span>
-                    </div>
-                    <p style={{ fontSize: "11.5px", color: "var(--muted)", marginBottom: "10px" }}>{new Date(tx.created_at).toLocaleString("bn-BD")}</p>
-                    <div style={{ display: "flex", gap: "6px" }}>
-                      <button onClick={() => approveWithdraw(tx.id)} style={{ padding: "7px 14px", borderRadius: "7px", background: "rgba(16,185,129,0.1)", color: "#10b981", fontSize: "12px", fontWeight: 700, border: "1px solid rgba(16,185,129,0.2)", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" }}>
-                        <Check size={12} /> পাঠানো হয়েছে
-                      </button>
-                      <button onClick={() => rejectWithdraw(tx.id, tx.user_id, tx.amount)} style={{ padding: "7px 14px", borderRadius: "7px", background: "rgba(239,68,68,0.1)", color: "#ef4444", fontSize: "12px", fontWeight: 700, border: "1px solid rgba(239,68,68,0.2)", cursor: "pointer", display: "flex", alignItems: "center", gap: "5px" }}>
-                        <X size={12} /> রিজেক্ট
-                      </button>
-                    </div>
-                  </div>
-                ))}
+             {loading ? <Loader2 size={28} color="var(--muted)" /> : pendingWithdraws.map((tx) => (
+              <div key={tx.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", background: "var(--bg)", borderRadius: "11px", border: "1px solid var(--border)", marginBottom: "10px", flexWrap: "wrap", gap: "10px" }}>
+                <div>
+                  <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>{tx.reason}</p>
+                  <p style={{ fontSize: "11.5px", color: "var(--muted)" }}>৳{Number(tx.amount).toLocaleString()}</p>
+                </div>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button onClick={() => approveWithdraw(tx.id)} style={{ padding: "6px 12px", borderRadius: "7px", background: "rgba(16,185,129,0.1)", color: "#10b981", fontSize: "12px", fontWeight: 700, border: "none", cursor: "pointer" }}>পাঠানো হয়েছে</button>
+                  <button onClick={() => rejectWithdraw(tx.id, tx.user_id, tx.amount)} style={{ padding: "6px 12px", borderRadius: "7px", background: "rgba(239,68,68,0.1)", color: "#ef4444", fontSize: "12px", fontWeight: 700, border: "none", cursor: "pointer" }}>রিজেক্ট</button>
+                </div>
               </div>
-            )}
+            ))}
           </div>
         )}
 
-        {tab !== "overview" && tab !== "listings" && tab !== "wallet" && tab !== "withdraws" && (
-          <div style={{ background: "var(--card)", border: "1.5px solid var(--border-strong)", borderRadius: "16px", padding: "40px 20px", textAlign: "center" }}>
-            <p style={{ fontSize: "14px", color: "var(--muted)" }}>{sidebarLinks.find((l) => l.key === tab)?.label} সেকশন শীঘ্রই আসছে</p>
-          </div>
-        )}
       </div>
 
       <style jsx>{`
