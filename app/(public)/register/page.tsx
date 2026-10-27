@@ -15,22 +15,22 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [errorMsg, setErrorMsg] = useState(""); // error নাম বদলে errorMsg করা হলো
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setErrorMsg("");
 
     if (!form.name || !form.email || !form.password || !form.confirmPassword) {
-      setError("সব ঘর পূরণ করুন");
+      setErrorMsg("সব ঘর পূরণ করুন");
       return;
     }
     if (form.password.length < 8) {
-      setError("পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে");
+      setErrorMsg("পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে");
       return;
     }
     if (form.password !== form.confirmPassword) {
-      setError("পাসওয়ার্ড ও কনফার্ম পাসওয়ার্ড মিলছে না");
+      setErrorMsg("পাসওয়ার্ড ও কনফার্ম পাসওয়ার্ড মিলছে না");
       return;
     }
 
@@ -45,7 +45,7 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (error) {
-      setError(error.message);
+      setErrorMsg(error.message);
       showToast("error", "রেজিস্ট্রেশন ব্যর্থ", error.message);
       return;
     }
@@ -78,9 +78,9 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleSubmit}>
-            {error && (
+            {errorMsg && (
               <div style={{ padding: "10px 14px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "10px", fontSize: "13px", color: "#ef4444", marginBottom: "12px" }}>
-                {error}
+                {errorMsg}
               </div>
             )}
 
